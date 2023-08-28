@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from pandasai import PandasAI
 from pandasai.llm.openai import OpenAI
-import matplotlib.pyplot as plt
 
 st.title("pandas-ai streamlit interface")
 
@@ -20,7 +20,12 @@ if "openai_key" not in st.session_state:
             st.session_state.df = None
 
 if "openai_key" in st.session_state:
-    if st.session_state.df is None:
+    # Select dataset option
+    st.sidebar.subheader("Select Dataset")
+    dataset_option = st.sidebar.radio("Choose a dataset:", ["Upload CSV", "Use Example"])
+
+    # Load selected dataset
+    if dataset_option == "Upload CSV":
         uploaded_file = st.file_uploader(
             "Choose a CSV file. This should be in long format (one datapoint per row).",
             type="csv",
@@ -28,6 +33,10 @@ if "openai_key" in st.session_state:
         if uploaded_file is not None:
             df = pd.read_csv(uploaded_file)
             st.session_state.df = df
+    elif dataset_option == "Use Example":
+        # Load example dataset
+        df = pd.read_csv("link_to_example.csv")  # Replace with the actual link
+        st.session_state.df = df
 
     with st.form("Question"):
         question = st.text_input("Question", value="", type="default")
@@ -38,9 +47,9 @@ if "openai_key" in st.session_state:
                 pandas_ai = PandasAI(llm)
                 x = pandas_ai.run(st.session_state.df, prompt=question)
 
-                fig = plt.gcf()
-                if fig.get_axes():
-                    st.pyplot(fig)
+                fig = px.scatter(x=x.index, y=x.values)
+                st.plotly_chart(fig)
+
                 st.write(x)
                 st.session_state.prompt_history.append(question)
 
@@ -50,7 +59,6 @@ if "openai_key" in st.session_state:
 
     st.subheader("Prompt history:")
     st.write(st.session_state.prompt_history)
-
 
 if st.button("Clear"):
     st.session_state.prompt_history = []
